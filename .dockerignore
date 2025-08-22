@@ -1,0 +1,11 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.alembic_cache/
+alembic/__pycache__/
+.git
+.vscode
+.idea
+uploads/
