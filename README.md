@@ -59,7 +59,7 @@ alembic upgrade head
 docker compose down      
 docker compose up -d --build  
 
-
+..
 ## Стэк
 - **FastAPI** - современный веб-фреймворк для Python
 - **SQLAlchemy 2.0** - ORM для работы с базой данных
