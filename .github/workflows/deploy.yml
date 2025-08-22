@@ -1,23 +1,23 @@
-name: Deploy to VPS
+# name: Deploy to VPS
 
-on:
-  push:
-    branches: ["master"]
+# on:
+#   push:
+#     branches: ["master"]
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout (for logs only)
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout (for logs only)
+#         uses: actions/checkout@v4
 
-      - name: SSH to server and run deploy.sh
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: 22
-          script: |
-             bash ~/tt-oak-company-backend/deploy.sh
+#       - name: SSH to server and run deploy.sh
+#         uses: appleboy/ssh-action@v1.2.0
+#         with:
+#           host: ${{ secrets.DEPLOY_HOST }}
+#           username: ${{ secrets.DEPLOY_USER }}
+#           key: ${{ secrets.DEPLOY_SSH_KEY }}
+#           port: 22
+#           script: |
+#              bash ~/capador-backend/deploy.sh
