@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.models.role import Role
+from app.models.user import UserRole
 from app.schemas.role import RoleCreate, RoleUpdate
 from typing import Optional, List
 
@@ -79,6 +80,78 @@ def delete_role(db: Session, role_id: int) -> bool:
             db.commit()
             return True
         return False
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
+
+
+# Функции для работы с пользовательскими ролями
+def get_user_roles(db: Session, user_id: int) -> List[Role]:
+    """Получить все роли пользователя"""
+    try:
+        return db.query(Role).join(UserRole).filter(UserRole.user_id == user_id).all()
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
+
+
+def add_role_to_user(db: Session, user_id: int, role_id: int) -> bool:
+    """Добавить роль пользователю"""
+    try:
+        # Проверяем, что роль уже не назначена
+        existing = (
+            db.query(UserRole)
+            .filter(UserRole.user_id == user_id, UserRole.role_id == role_id)
+            .first()
+        )
+
+        if existing:
+            return True  # Роль уже назначена
+
+        user_role = UserRole(user_id=user_id, role_id=role_id)
+        db.add(user_role)
+        db.commit()
+        return True
+    except IntegrityError:
+        db.rollback()
+        return False
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
+
+
+def remove_role_from_user(db: Session, user_id: int, role_id: int) -> bool:
+    """Удалить роль у пользователя"""
+    try:
+        user_role = (
+            db.query(UserRole)
+            .filter(UserRole.user_id == user_id, UserRole.role_id == role_id)
+            .first()
+        )
+
+        if user_role:
+            db.delete(user_role)
+            db.commit()
+            return True
+        return False
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
+
+
+def set_user_roles(db: Session, user_id: int, role_ids: List[int]) -> bool:
+    """Установить роли пользователя (заменить существующие)"""
+    try:
+        # Удаляем все существующие роли
+        db.query(UserRole).filter(UserRole.user_id == user_id).delete()
+
+        # Добавляем новые роли
+        for role_id in role_ids:
+            user_role = UserRole(user_id=user_id, role_id=role_id)
+            db.add(user_role)
+
+        db.commit()
+        return True
     except SQLAlchemyError as e:
         db.rollback()
         raise e
