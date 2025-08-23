@@ -1,21 +1,27 @@
 from fastapi import FastAPI, HTTPException
-from app.routers import auth, company, role
+from app.routers import auth, category, product, carpet, role
 from starlette.staticfiles import StaticFiles
 import os
 from app.config import MEDIA_ROOT
 
 
-app = FastAPI(root_path="/api/project1", title="Company API")
+app = FastAPI(root_path="/api/project1", title="Product Catalog API")
 
 app.include_router(auth.router)
-app.include_router(company.router)
+app.include_router(category.router)
+app.include_router(product.router)
+app.include_router(carpet.router)
 app.include_router(role.router)
 
 
 @app.get("/")
 def root():
     """Корневой эндпоинт"""
-    return {"message": "Company API is working", "version": "1.0.0", "docs": "/docs"}
+    return {
+        "message": "Product Catalog API is working",
+        "version": "1.0.0",
+        "docs": "/docs",
+    }
 
 
 @app.get("/health")
