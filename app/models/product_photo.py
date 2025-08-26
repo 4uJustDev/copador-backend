@@ -17,11 +17,8 @@ class ProductPhoto(Base):
     filename = Column(String, nullable=False)
     filepath = Column(Text, nullable=False)
     thumbpath = Column(Text, nullable=False)
-    is_main = Column(Boolean, default=False)  # Главное фото товара
-    sort_order = Column(Integer, default=0)  # Порядок сортировки
+    is_main = Column(Boolean, default=False)
+    sort_order = Column(Integer, default=0)
 
     # Связь с товаром
     product = relationship("Product", back_populates="photos")
-
-    def __repr__(self):
-        return f"<ProductPhoto(id={self.id}, product_id={self.product_id}, filename='{self.filename}')>"

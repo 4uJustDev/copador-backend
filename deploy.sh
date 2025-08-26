@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="$HOME/tt-oak-company-backend"
+APP_DIR="$HOME/copador-backend"
 LOG_FILE="$APP_DIR/deploy.log"
 
 # логирование
@@ -24,7 +24,7 @@ docker image prune -af || true
 
 echo "[deploy] health check…"
 for i in {1..30}; do
-  if curl -sf http://127.0.0.1:8101/health >/dev/null; then
+  if curl -sf http://127.0.0.1:8102/health >/dev/null; then
     echo "[deploy] API is healthy."
     echo "[deploy] finished at $(date)"
     exit 0

@@ -9,7 +9,6 @@ class CarpetBase(BaseModel):
     material: Optional[str] = Field(None, max_length=100)
     origin: Optional[str] = Field(None, max_length=100)
     age: Optional[str] = Field(None, max_length=100)
-    condition: Optional[str] = Field(None, max_length=100)
 
 
 class CarpetCreate(CarpetBase):
@@ -22,7 +21,6 @@ class CarpetUpdate(BaseModel):
     material: Optional[str] = Field(None, max_length=100)
     origin: Optional[str] = Field(None, max_length=100)
     age: Optional[str] = Field(None, max_length=100)
-    condition: Optional[str] = Field(None, max_length=100)
 
 
 class CarpetOut(CarpetBase):

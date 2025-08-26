@@ -34,6 +34,3 @@ class Product(Base):
         "ProductPhoto", back_populates="product", cascade="all, delete-orphan"
     )
     carpet = relationship("Carpet", back_populates="product", uselist=False)
-
-    def __repr__(self):
-        return f"<Product(id={self.id}, sku='{self.sku}', name='{self.name}')>"

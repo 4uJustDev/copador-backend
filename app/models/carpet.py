@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, BigInteger, Numeric
+from sqlalchemy import Column, String, ForeignKey, BigInteger, Numeric
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -14,20 +14,11 @@ class Carpet(Base):
         unique=True,
     )
 
-    # Специфичные характеристики ковра
-    width = Column(Numeric(8, 2), nullable=True)  # Ширина в см
-    length = Column(Numeric(8, 2), nullable=True)  # Длина в см
-    material = Column(String, nullable=True)  # Материал (шерсть, шелк, хлопок и т.д.)
-    origin = Column(
-        String, nullable=True
-    )  # Происхождение (персидский, турецкий и т.д.)
-    age = Column(String, nullable=True)  # Возраст ковра
-    condition = Column(
-        String, nullable=True
-    )  # Состояние (отличное, хорошее, удовлетворительное)
+    width = Column(Numeric(8, 2), nullable=True)
+    length = Column(Numeric(8, 2), nullable=True)
+    material = Column(String, nullable=True)
+    origin = Column(String, nullable=True)
+    age = Column(String, nullable=True)
 
-    # Связь с основным товаром
+    # Связи
     product = relationship("Product", back_populates="carpet")
-
-    def __repr__(self):
-        return f"<Carpet(id={self.id}, product_id={self.product_id}, width={self.width}, length={self.length})>"

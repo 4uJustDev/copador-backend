@@ -6,7 +6,7 @@ git clone <repository-url>
 cd tt-oak-company-backend
 ```
 
-2. **Создайте виртуальное окружение:**
+2. **Создайте виртуальное окружение и запустите:**
 ```bash
 python -m venv venv
 source venv/bin/activate  # Linux/Mac

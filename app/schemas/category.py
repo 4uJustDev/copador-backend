@@ -5,7 +5,7 @@ from datetime import datetime
 
 class CategoryBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    sysname: str = Field(..., min_length=1, max_length=100, regex=r"^[a-z0-9-]+$")
+    sysname: str = Field(..., min_length=1, max_length=100, pattern=r"^[a-z0-9-]+$")
     is_leaf: bool = False
 
 
@@ -16,7 +16,7 @@ class CategoryCreate(CategoryBase):
 class CategoryUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     sysname: Optional[str] = Field(
-        None, min_length=1, max_length=100, regex=r"^[a-z0-9-]+$"
+        None, min_length=1, max_length=100, pattern=r"^[a-z0-9-]+$"
     )
     parent_id: Optional[int] = None
     is_leaf: Optional[bool] = None

@@ -36,11 +36,7 @@ class ProductOut(ProductBase):
 
 
 class ProductWithPhotos(ProductOut):
-    photos: List["ProductPhotoOut"] = []
+    photos: List[dict] = []
 
     class Config:
         from_attributes = True
-
-
-# Для рекурсивной схемы
-ProductWithPhotos.model_rebuild()
