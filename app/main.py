@@ -5,7 +5,7 @@ import os
 from app.config import MEDIA_ROOT
 
 
-app = FastAPI(root_path="/api/project1", title="Product Catalog API")
+app = FastAPI(root_path="/api/project2", title="Product Catalog API")
 
 app.include_router(auth.router)
 app.include_router(category.router)
