@@ -62,10 +62,11 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
             {"user_id": new_user.id, "roles": new_user.role_names}
         )
         return {"access_token": token}
-    except IntegrityError:
+    except IntegrityError as e:
         db.rollback()
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Registration failed"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Registration failed: integrity constraint violation",
         )
 
 
@@ -73,7 +74,17 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     """Аутентификация пользователя"""
     user = db.query(User).filter(User.email == data.email).first()
-    if not user or not verify_password(data.password, user.password_hash):
+    # Нет пользователя или пароль не установлен (например, соц. вход)
+    if not user or not user.password_hash:
+        raise HTTPException(is_valid
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+        )
+    try:
+        is_valid = verify_password(data.password, user.password_hash)
+    except Exception:
+        # Любые ошибки верификации отображаем как неуспешные креды, без раскрытия деталей
+        is_valid = False
+    if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
         )
