@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -31,20 +31,7 @@ class CategoryOut(CategoryBase):
 
 
 class CategoryWithComputed(CategoryOut):
-    @computed_field
-    @property
-    def is_leaf(self) -> bool:
-        """Вычисляемое поле: является ли категория листом"""
-        # Это поле будет переопределяться в CRUD операциях
-        return getattr(self, "_is_leaf", False)
+    is_leaf: bool = False
+    children: List["CategoryWithComputed"] = []
 
-    @computed_field
-    @property
-    def children(self) -> List["CategoryWithComputed"]:
-        """Вычисляемое поле: дочерние категории"""
-        # Это поле будет переопределяться в CRUD операциях
-        return getattr(self, "_children", [])
-
-
-# Для рекурсивной схемы
 CategoryWithComputed.model_rebuild()

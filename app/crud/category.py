@@ -50,18 +50,6 @@ def get_category_children(db: Session, category_id: int) -> List[Category]:
         raise e
 
 
-def is_category_leaf(db: Session, category_id: int) -> bool:
-    """Проверить, является ли категория листом (не имеет дочерних элементов)"""
-    try:
-        children_count = (
-            db.query(Category).filter(Category.parent_id == category_id).count()
-        )
-        return children_count == 0
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise e
-
-
 def create_category(db: Session, category: CategoryCreate) -> Category:
     """Создать новую категорию"""
     try:
@@ -105,11 +93,13 @@ def update_category(
         if "parent_id" in update_data:
             new_parent_id = update_data["parent_id"]
             if new_parent_id is not None:
-                parent = get_category(db, new_parent_id)
-                if not parent:
-                    raise ValueError("Родительская категория не найдена")
-                if new_parent_id == category_id:
-                    raise ValueError("Категория не может быть родителем самой себя")
+                # Проверка на циклы в иерархии
+                current_parent_id = new_parent_id
+                while current_parent_id is not None:
+                    if current_parent_id == category_id:
+                        raise ValueError("Обнаружена циклическая ссылка в иерархии категорий")
+                    parent_category = get_category(db, current_parent_id)
+                    current_parent_id = parent_category.parent_id if parent_category else None
 
         # Обновляем поля
         for field, value in update_data.items():
@@ -144,52 +134,69 @@ def delete_category(db: Session, category_id: int) -> bool:
         raise e
 
 
-def get_category_tree(db: Session) -> List[Category]:
-    """Получить полное дерево категорий"""
+def get_category_tree(db: Session) -> List[dict]:
     try:
-        # Получаем все категории и строим дерево
         all_categories = db.query(Category).all()
         category_dict = {cat.id: cat for cat in all_categories}
-
-        # Строим дерево
+        
+        # Создаем дерево как словари, а не модифицируем ORM объекты
+        tree = []
         for category in all_categories:
-            if category.parent_id and category.parent_id in category_dict:
-                parent = category_dict[category.parent_id]
-                parent.children.append(category)
-
-        # Возвращаем только корневые категории
-        return [cat for cat in all_categories if cat.parent_id is None]
+            if category.parent_id is None:
+                tree.append(_build_category_tree_node(category, category_dict))
+        
+        return tree
+    
     except SQLAlchemyError as e:
         db.rollback()
         raise e
 
-
-def enrich_category_with_computed_fields(
-    db: Session, category: Category
-) -> CategoryWithComputed:
-    """Обогатить категорию вычисляемыми полями"""
-    # Получаем дочерние элементы
-    children = get_category_children(db, category.id)
-
-    # Проверяем, является ли листом
-    is_leaf = len(children) == 0
-
-    # Создаем объект с вычисляемыми полями
-    category_dict = {
+def _build_category_tree_node(category, category_dict):
+    """Рекурсивно строит узел дерева"""
+    node = {
         "id": category.id,
         "name": category.name,
         "sysname": category.sysname,
         "parent_id": category.parent_id,
         "created_at": category.created_at,
         "updated_at": category.updated_at,
-        "_is_leaf": is_leaf,
-        "_children": [
-            enrich_category_with_computed_fields(db, child) for child in children
-        ],
+        "children": []
     }
+    
+    # Находим детей и рекурсивно строим для них дерево
+    children = [cat for cat in category_dict.values() if cat.parent_id == category.id]
+    for child in children:
+        node["children"].append(_build_category_tree_node(child, category_dict))
+    
+    return node
 
-    return CategoryWithComputed(**category_dict)
+def enrich_category_with_computed_fields(
+    db: Session, category: Category, all_categories: List[Category] = None
+) -> CategoryWithComputed:
+    """Обогатить категорию вычисляемыми полями"""
+    if all_categories is None:
+        all_categories = db.query(Category).all()
+    
+    # Находим детей из предзагруженного списка
+    children = [cat for cat in all_categories if cat.parent_id == category.id]
+    is_leaf = len(children) == 0
 
+    # Рекурсивно обогащаем детей
+    enriched_children = [
+        enrich_category_with_computed_fields(db, child, all_categories)
+        for child in children
+    ]
+
+    return CategoryWithComputed(
+        id=category.id,
+        name=category.name,
+        sysname=category.sysname,
+        parent_id=category.parent_id,
+        created_at=category.created_at,
+        updated_at=category.updated_at,
+        is_leaf=is_leaf,
+        children=enriched_children
+    )
 
 def enrich_categories_with_computed_fields(
     db: Session, categories: List[Category]
