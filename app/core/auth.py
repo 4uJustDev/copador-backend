@@ -31,11 +31,12 @@ def decode_token(token: str) -> dict:
         return jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except jwt.ExpiredSignatureError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Срок действия токена истёк",
         )
     except jwt.PyJWTError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalid"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Недействительный токен"
         )
 
 
@@ -45,21 +46,23 @@ def get_current_user(token: str, db: Session):
         user_id = payload.get("user_id")
         if user_id is None:
             raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Недействительный токен",
             )
     except jwt.ExpiredSignatureError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Срок действия токена истёк",
         )
     except jwt.PyJWTError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token invalid"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Недействительный токен"
         )
 
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден"
         )
     return user
 
@@ -70,7 +73,7 @@ def get_current_user_dep(
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header missing or invalid",
+            detail="Заголовок Authorization отсутствует или некорректен",
         )
     token = authorization.split(" ", 1)[1]
     return get_current_user(token, db)
@@ -80,7 +83,7 @@ def get_current_payload_dep(authorization: str = Header(None)) -> dict:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header missing or invalid",
+            detail="Заголовок Authorization отсутствует или некорректен",
         )
     token = authorization.split(" ", 1)[1]
     return decode_token(token)
@@ -93,7 +96,7 @@ def require_role(role_name: str):
         if not any(role.name == role_name for role in current_user.roles):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Role '{role_name}' required",
+                detail=f"Требуется роль '{role_name}'",
             )
         return current_user
 
@@ -108,7 +111,7 @@ def require_roles(role_names: List[str]):
         if not any(role in user_roles for role in role_names):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"One of roles {role_names} required",
+                detail=f"Требуется одна из ролей: {role_names}",
             )
         return current_user
 
@@ -123,7 +126,7 @@ def require_role_from_token(role_name: str):
         if role_name not in token_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Role '{role_name}' required",
+                detail=f"Требуется роль '{role_name}'",
             )
         return payload
 
@@ -138,7 +141,7 @@ def require_roles_from_token(role_names: List[str]):
         if not any(role in token_roles for role in role_names):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"One of roles {role_names} required",
+                detail=f"Требуется одна из ролей: {role_names}",
             )
         return payload
 
@@ -149,6 +152,7 @@ def require_admin_role(current_user: models.User = Depends(get_current_user_dep)
     """Зависимость для проверки прав администратора"""
     if not any(role.name == "admin" for role in current_user.roles):
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required"
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Необходимы права администратора",
         )
     return current_user
