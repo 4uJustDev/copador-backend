@@ -45,19 +45,18 @@ docker compose up -d --build
 
 ## Полезные команды
 
-# venv
-.\venv\Scripts\Activate.ps1
-
-# Running app
-run : uvicorn app.main:app --reload
-
 # Alembic
 alembic revision --autogenerate -m "comment" 
 alembic upgrade head
 
 # Docker 
-docker compose down      
-docker compose up -d --build  
+docker compose down               | Остановка всех контейнеров
+docker compose up -d --build      | Сборка контейнеров
+docker compose build --no-cache   | Пересборка жесткая 
+docker compose exec api bash      | Подключение к контейнеру с башем
+
+# Scripts
+docker compose exec api bash -lc "python -m app.scripts.seeds" | cat
 
 ..
 ## Стэк
