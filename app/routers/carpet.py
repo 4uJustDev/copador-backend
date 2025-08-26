@@ -85,11 +85,10 @@ def get_carpet_by_product_id(product_id: int, db: Session = Depends(get_db)):
     return carpet
 
 
-@router.post("/", response_model=CarpetOut)
+@router.post("/", response_model=CarpetOut, dependencies=[Depends(require_admin_role)])
 def create_carpet(
     carpet: CarpetCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Создать новый ковер (только для админов)"""
     try:
@@ -98,12 +97,13 @@ def create_carpet(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.put("/{carpet_id}", response_model=CarpetOut)
+@router.put(
+    "/{carpet_id}", response_model=CarpetOut, dependencies=[Depends(require_admin_role)]
+)
 def update_carpet(
     carpet_id: int,
     carpet: CarpetUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Обновить ковер (только для админов)"""
     updated_carpet = crud_carpet.update_carpet(db, carpet_id, carpet)
@@ -114,11 +114,10 @@ def update_carpet(
     return updated_carpet
 
 
-@router.delete("/{carpet_id}")
+@router.delete("/{carpet_id}", dependencies=[Depends(require_admin_role)])
 def delete_carpet(
     carpet_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Удалить ковер (только для админов)"""
     success = crud_carpet.delete_carpet(db, carpet_id)

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app.models.category import Category
-from app.schemas.category import CategoryCreate, CategoryUpdate
+from app.schemas.category import CategoryCreate, CategoryUpdate, CategoryWithComputed
 from typing import Optional, List
 
 
@@ -50,13 +50,37 @@ def get_category_children(db: Session, category_id: int) -> List[Category]:
         raise e
 
 
+def is_category_leaf(db: Session, category_id: int) -> bool:
+    """Проверить, является ли категория листом (не имеет дочерних элементов)"""
+    try:
+        children_count = (
+            db.query(Category).filter(Category.parent_id == category_id).count()
+        )
+        return children_count == 0
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
+
+
 def create_category(db: Session, category: CategoryCreate) -> Category:
     """Создать новую категорию"""
     try:
-        db_category = Category(**category.dict())
+        # Проверяем, что parent_id существует, если указан
+        if category.parent_id is not None:
+            parent = get_category(db, category.parent_id)
+            if not parent:
+                raise ValueError("Родительская категория не найдена")
+
+        # Создаем категорию (без is_leaf - он вычисляется динамически)
+        db_category = Category(
+            name=category.name,
+            sysname=category.sysname,
+            parent_id=category.parent_id,
+        )
         db.add(db_category)
         db.commit()
         db.refresh(db_category)
+
         return db_category
     except IntegrityError:
         db.rollback()
@@ -76,11 +100,24 @@ def update_category(
             return None
 
         update_data = category.dict(exclude_unset=True)
+
+        # Проверяем новый parent_id, если он указан
+        if "parent_id" in update_data:
+            new_parent_id = update_data["parent_id"]
+            if new_parent_id is not None:
+                parent = get_category(db, new_parent_id)
+                if not parent:
+                    raise ValueError("Родительская категория не найдена")
+                if new_parent_id == category_id:
+                    raise ValueError("Категория не может быть родителем самой себя")
+
+        # Обновляем поля
         for field, value in update_data.items():
             setattr(db_category, field, value)
 
         db.commit()
         db.refresh(db_category)
+
         return db_category
     except IntegrityError:
         db.rollback()
@@ -94,11 +131,14 @@ def delete_category(db: Session, category_id: int) -> bool:
     """Удалить категорию"""
     try:
         db_category = get_category(db, category_id)
-        if db_category:
-            db.delete(db_category)
-            db.commit()
-            return True
-        return False
+        if not db_category:
+            return False
+
+        # Удаляем категорию (каскадное удаление дочерних элементов настроено в модели)
+        db.delete(db_category)
+        db.commit()
+
+        return True
     except SQLAlchemyError as e:
         db.rollback()
         raise e
@@ -122,3 +162,37 @@ def get_category_tree(db: Session) -> List[Category]:
     except SQLAlchemyError as e:
         db.rollback()
         raise e
+
+
+def enrich_category_with_computed_fields(
+    db: Session, category: Category
+) -> CategoryWithComputed:
+    """Обогатить категорию вычисляемыми полями"""
+    # Получаем дочерние элементы
+    children = get_category_children(db, category.id)
+
+    # Проверяем, является ли листом
+    is_leaf = len(children) == 0
+
+    # Создаем объект с вычисляемыми полями
+    category_dict = {
+        "id": category.id,
+        "name": category.name,
+        "sysname": category.sysname,
+        "parent_id": category.parent_id,
+        "created_at": category.created_at,
+        "updated_at": category.updated_at,
+        "_is_leaf": is_leaf,
+        "_children": [
+            enrich_category_with_computed_fields(db, child) for child in children
+        ],
+    }
+
+    return CategoryWithComputed(**category_dict)
+
+
+def enrich_categories_with_computed_fields(
+    db: Session, categories: List[Category]
+) -> List[CategoryWithComputed]:
+    """Обогатить список категорий вычисляемыми полями"""
+    return [enrich_category_with_computed_fields(db, cat) for cat in categories]

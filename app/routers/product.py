@@ -101,11 +101,14 @@ def get_product_by_sku(sku: str, db: Session = Depends(get_db)):
     return product
 
 
-@router.post("/", response_model=ProductOut)
+@router.post(
+    "/",
+    response_model=ProductOut,
+    dependencies=[Depends(require_admin_role)],
+)
 def create_product(
     product: ProductCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Создать новый товар (только для админов)"""
     try:
@@ -114,12 +117,15 @@ def create_product(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.put("/{product_id}", response_model=ProductOut)
+@router.put(
+    "/{product_id}",
+    response_model=ProductOut,
+    dependencies=[Depends(require_admin_role)],
+)
 def update_product(
     product_id: int,
     product: ProductUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Обновить товар (только для админов)"""
     updated_product = crud_product.update_product(db, product_id, product)
@@ -130,11 +136,13 @@ def update_product(
     return updated_product
 
 
-@router.delete("/{product_id}")
+@router.delete(
+    "/{product_id}",
+    dependencies=[Depends(require_admin_role)],
+)
 def delete_product(
     product_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Удалить товар (только для админов)"""
     success = crud_product.delete_product(db, product_id)
@@ -145,12 +153,14 @@ def delete_product(
     return {"message": "Product deleted successfully"}
 
 
-@router.put("/{product_id}/stock")
+@router.put(
+    "/{product_id}/stock",
+    dependencies=[Depends(require_admin_role)],
+)
 def update_product_stock(
     product_id: int,
     amount: int = Query(..., ge=0),
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Обновить количество товара на складе (только для админов)"""
     updated_product = crud_product.update_product_stock(db, product_id, amount)
@@ -183,14 +193,16 @@ def get_product_photos(product_id: int, db: Session = Depends(get_db)):
     return photos
 
 
-@router.post("/{product_id}/photos")
+@router.post(
+    "/{product_id}/photos",
+    dependencies=[Depends(require_admin_role)],
+)
 async def upload_product_photo(
     product_id: int,
     file: UploadFile = File(...),
     is_main: bool = Form(False),
     sort_order: int = Form(0),
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Загрузить фотографию для товара (только для админов)"""
     # Проверяем, что товар существует
@@ -265,13 +277,16 @@ def get_product_photo(product_id: int, photo_id: int, db: Session = Depends(get_
     return photo
 
 
-@router.put("/{product_id}/photos/{photo_id}", response_model=ProductPhotoOut)
+@router.put(
+    "/{product_id}/photos/{photo_id}",
+    response_model=ProductPhotoOut,
+    dependencies=[Depends(require_admin_role)],
+)
 def update_product_photo(
     product_id: int,
     photo_id: int,
     photo_update: ProductPhotoUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Обновить информацию о фотографии (только для админов)"""
     # Проверяем, что товар существует
@@ -309,12 +324,14 @@ def update_product_photo(
     return photo
 
 
-@router.delete("/{product_id}/photos/{photo_id}")
+@router.delete(
+    "/{product_id}/photos/{photo_id}",
+    dependencies=[Depends(require_admin_role)],
+)
 def delete_product_photo(
     product_id: int,
     photo_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Удалить фотографию (только для админов)"""
     # Проверяем, что товар существует
@@ -351,12 +368,14 @@ def delete_product_photo(
         )
 
 
-@router.post("/{product_id}/photos/{photo_id}/set-main")
+@router.post(
+    "/{product_id}/photos/{photo_id}/set-main",
+    dependencies=[Depends(require_admin_role)],
+)
 def set_main_photo(
     product_id: int,
     photo_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Установить фотографию как главную (только для админов)"""
     # Проверяем, что товар существует
@@ -388,12 +407,14 @@ def set_main_photo(
     return {"message": "Main photo set successfully"}
 
 
-@router.post("/{product_id}/photos/reorder")
+@router.post(
+    "/{product_id}/photos/reorder",
+    dependencies=[Depends(require_admin_role)],
+)
 def reorder_photos(
     product_id: int,
     photo_ids: List[int],
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_role),
 ):
     """Переупорядочить фотографии товара (только для админов)"""
     # Проверяем, что товар существует

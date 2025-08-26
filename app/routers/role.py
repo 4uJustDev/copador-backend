@@ -11,11 +11,10 @@ from typing import List
 router = APIRouter(prefix="/roles", tags=["roles"])
 
 
-@router.post("/", response_model=RoleOut)
+@router.post("/", response_model=RoleOut, dependencies=[Depends(require_admin_role)])
 def create_role(
     role: RoleCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin_role),
 ):
     """Создать новую роль (только для администраторов)"""
     # Проверка на дубликат имени
@@ -50,12 +49,13 @@ def read_role(role_id: int, db: Session = Depends(get_db)):
     return db_role
 
 
-@router.patch("/{role_id}", response_model=RoleOut)
+@router.patch(
+    "/{role_id}", response_model=RoleOut, dependencies=[Depends(require_admin_role)]
+)
 def update_role(
     role_id: int,
     role: RoleUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin_role),
 ):
     """Обновить роль (только для администраторов)"""
     # Если обновляется имя, проверяем дубликаты
@@ -80,11 +80,10 @@ def update_role(
     return updated
 
 
-@router.delete("/{role_id}")
+@router.delete("/{role_id}", dependencies=[Depends(require_admin_role)])
 def delete_role(
     role_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin_role),
 ):
     """Удалить роль (только для администраторов)"""
     deleted = crud_role.delete_role(db, role_id)
