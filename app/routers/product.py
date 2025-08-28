@@ -13,6 +13,7 @@ from typing import List
 from app.database import get_db
 from app.core.auth import require_admin_role
 from app.crud import product as crud_product
+from app.crud import photo as crud_photo
 from app.schemas.product import (
     ProductCreate,
     ProductUpdate,
@@ -24,7 +25,6 @@ from app.schemas.product_photo import (
     ProductPhotoOut,
     PhotoReorderRequest,
 )
-from app.models.product_photo import ProductPhoto
 from app.services.images import (
     save_product_image,
     delete_product_image,
@@ -162,21 +162,12 @@ def delete_product(
 
 @router.get("/{product_id}/photos", response_model=List[ProductPhotoOut])
 def get_product_photos(product_id: int, db: Session = Depends(get_db)):
-    """Получить все фотографии товара"""
-    # Проверяем, что товар существует
     product = crud_product.get_product(db, product_id)
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
-
-    photos = (
-        db.query(ProductPhoto)
-        .filter(ProductPhoto.product_id == product_id)
-        .order_by(ProductPhoto.sort_order)
-        .all()
-    )
-    return photos
+    return crud_photo.get_photos_by_product(db, product_id)
 
 
 @router.post(
@@ -190,36 +181,23 @@ async def upload_product_photo(
     sort_order: int = Form(0),
     db: Session = Depends(get_db),
 ):
-    """Загрузить фотографию для товара (только для админов)"""
-    # Проверяем, что товар существует
     product = crud_product.get_product(db, product_id)
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
 
-    # Проверяем тип файла
     if not validate_image_file(file):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File must be an image (JPEG, PNG, WebP)",
         )
 
-    # Генерируем уникальное имя файла
     filename = generate_unique_filename(product_id, file.filename)
-
     try:
-        # Сохраняем файл и создаем миниатюру
         file_path, thumb_path = save_product_image(file, product_id, filename)
-
-        # Если это главное фото, снимаем флаг с других фото
-        if is_main:
-            db.query(ProductPhoto).filter(
-                ProductPhoto.product_id == product_id, ProductPhoto.is_main == True
-            ).update({"is_main": False})
-
-        # Создаем запись в БД
-        photo = ProductPhoto(
+        photo = crud_photo.create_photo(
+            db,
             product_id=product_id,
             filename=filename,
             filepath=file_path,
@@ -227,13 +205,7 @@ async def upload_product_photo(
             is_main=is_main,
             sort_order=sort_order,
         )
-
-        db.add(photo)
-        db.commit()
-        db.refresh(photo)
-
         return photo
-
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -243,19 +215,12 @@ async def upload_product_photo(
 
 @router.get("/{product_id}/photos/{photo_id}", response_model=ProductPhotoOut)
 def get_product_photo(product_id: int, photo_id: int, db: Session = Depends(get_db)):
-    """Получить конкретную фотографию товара"""
-    # Проверяем, что товар существует
     product = crud_product.get_product(db, product_id)
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
-
-    photo = (
-        db.query(ProductPhoto)
-        .filter(ProductPhoto.id == photo_id, ProductPhoto.product_id == product_id)
-        .first()
-    )
+    photo = crud_photo.get_photo(db, photo_id, product_id)
     if not photo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found"
@@ -274,40 +239,24 @@ def update_product_photo(
     photo_update: ProductPhotoUpdate,
     db: Session = Depends(get_db),
 ):
-    """Обновить информацию о фотографии (только для админов)"""
-    # Проверяем, что товар существует
     product = crud_product.get_product(db, product_id)
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
-
-    photo = (
-        db.query(ProductPhoto)
-        .filter(ProductPhoto.id == photo_id, ProductPhoto.product_id == product_id)
-        .first()
-    )
+    photo = crud_photo.get_photo(db, photo_id, product_id)
     if not photo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found"
         )
 
-    # Если устанавливаем как главное фото, снимаем флаг с других
-    if photo_update.is_main:
-        db.query(ProductPhoto).filter(
-            ProductPhoto.product_id == photo.product_id,
-            ProductPhoto.is_main == True,
-            ProductPhoto.id != photo_id,
-        ).update({"is_main": False})
-
-    # Обновляем поля
-    update_data = photo_update.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(photo, field, value)
-
-    db.commit()
-    db.refresh(photo)
-    return photo
+    updated = crud_photo.update_photo(
+        db,
+        photo,
+        is_main=photo_update.is_main,
+        sort_order=photo_update.sort_order,
+    )
+    return updated
 
 
 @router.delete(
@@ -319,39 +268,20 @@ def delete_product_photo(
     photo_id: int,
     db: Session = Depends(get_db),
 ):
-    """Удалить фотографию (только для админов)"""
-    # Проверяем, что товар существует
     product = crud_product.get_product(db, product_id)
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
-
-    photo = (
-        db.query(ProductPhoto)
-        .filter(ProductPhoto.id == photo_id, ProductPhoto.product_id == product_id)
-        .first()
-    )
+    photo = crud_photo.get_photo(db, photo_id, product_id)
     if not photo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found"
         )
 
-    try:
-        # Удаляем файлы с диска
-        delete_product_image(photo.filepath, photo.thumbpath)
-
-        # Удаляем запись из БД
-        db.delete(photo)
-        db.commit()
-
-        return {"message": "Photo deleted successfully"}
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete photo: {str(e)}",
-        )
+    delete_product_image(photo.filepath, photo.thumbpath)
+    crud_photo.delete_photo(db, photo)
+    return {"message": "Photo deleted successfully"}
 
 
 @router.post(
@@ -363,33 +293,18 @@ def set_main_photo(
     photo_id: int,
     db: Session = Depends(get_db),
 ):
-    """Установить фотографию как главную (только для админов)"""
-    # Проверяем, что товар существует
     product = crud_product.get_product(db, product_id)
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
-
-    photo = (
-        db.query(ProductPhoto)
-        .filter(ProductPhoto.id == photo_id, ProductPhoto.product_id == product_id)
-        .first()
-    )
+    photo = crud_photo.get_photo(db, photo_id, product_id)
     if not photo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found"
         )
 
-    # Снимаем флаг главного фото с других фото этого товара
-    db.query(ProductPhoto).filter(
-        ProductPhoto.product_id == photo.product_id, ProductPhoto.is_main == True
-    ).update({"is_main": False})
-
-    # Устанавливаем флаг главного фото
-    photo.is_main = True
-    db.commit()
-
+    crud_photo.update_photo(db, photo, is_main=True)
     return {"message": "Main photo set successfully"}
 
 
@@ -402,22 +317,10 @@ def reorder_photos(
     body: PhotoReorderRequest,
     db: Session = Depends(get_db),
 ):
-    """Переупорядочить фотографии товара (только для админов)"""
-    # Проверяем, что товар существует
     product = crud_product.get_product(db, product_id)
     if not product:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
-
-    for index, photo_id in enumerate(body.photo_ids):
-        photo = (
-            db.query(ProductPhoto)
-            .filter(ProductPhoto.id == photo_id, ProductPhoto.product_id == product_id)
-            .first()
-        )
-        if photo:
-            photo.sort_order = index
-
-    db.commit()
+    crud_photo.reorder_photos(db, product_id, body.photo_ids)
     return {"message": "Photos reordered successfully"}
