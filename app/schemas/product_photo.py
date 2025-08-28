@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 
 class ProductPhotoBase(BaseModel):
@@ -28,3 +28,7 @@ class ProductPhotoOut(ProductPhotoBase):
 
     class Config:
         from_attributes = True
+
+
+class PhotoReorderRequest(BaseModel):
+    photo_ids: List[int]

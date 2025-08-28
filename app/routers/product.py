@@ -19,7 +19,11 @@ from app.schemas.product import (
     ProductOut,
     ProductWithPhotos,
 )
-from app.schemas.product_photo import ProductPhotoUpdate, ProductPhotoOut
+from app.schemas.product_photo import (
+    ProductPhotoUpdate,
+    ProductPhotoOut,
+    PhotoReorderRequest,
+)
 from app.models.product_photo import ProductPhoto
 from app.services.images import (
     save_product_image,
@@ -395,7 +399,7 @@ def set_main_photo(
 )
 def reorder_photos(
     product_id: int,
-    photo_ids: List[int],
+    body: PhotoReorderRequest,
     db: Session = Depends(get_db),
 ):
     """Переупорядочить фотографии товара (только для админов)"""
@@ -406,7 +410,7 @@ def reorder_photos(
             status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
         )
 
-    for index, photo_id in enumerate(photo_ids):
+    for index, photo_id in enumerate(body.photo_ids):
         photo = (
             db.query(ProductPhoto)
             .filter(ProductPhoto.id == photo_id, ProductPhoto.product_id == product_id)
