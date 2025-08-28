@@ -19,7 +19,9 @@ def get_categories(
     all_categories = db.query(Category).all()
     categories = all_categories[skip : skip + limit]
 
-    return crud_category.enrich_categories_with_computed_fields(db, categories)
+    return crud_category.enrich_categories_with_computed_fields(
+        db, categories, include_children=False
+    )
 
 
 @router.get("/tree", response_model=List[CategoryWithComputed])
@@ -34,7 +36,9 @@ def get_root_categories(db: Session = Depends(get_db)):
     """Получить корневые категории"""
     try:
         categories = crud_category.get_root_categories(db)
-        return crud_category.enrich_categories_with_computed_fields(db, categories)
+        return crud_category.enrich_categories_with_computed_fields(
+            db, categories, include_children=False
+        )
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

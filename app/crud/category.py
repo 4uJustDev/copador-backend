@@ -163,7 +163,10 @@ def _build_category_tree_node(category, category_dict):
 
 
 def enrich_category_with_computed_fields(
-    db: Session, category: Category, all_categories: List[Category] = None
+    db: Session,
+    category: Category,
+    all_categories: List[Category] = None,
+    include_children: bool = True,
 ) -> CategoryWithComputed:
     """Обогатить категорию вычисляемыми полями"""
     if all_categories is None:
@@ -173,11 +176,16 @@ def enrich_category_with_computed_fields(
     children = [cat for cat in all_categories if cat.parent_id == category.id]
     is_leaf = len(children) == 0
 
-    # Рекурсивно обогащаем детей
-    enriched_children = [
-        enrich_category_with_computed_fields(db, child, all_categories)
-        for child in children
-    ]
+    # Рекурсивно обогащаем детей, если это требуется
+    if include_children:
+        enriched_children = [
+            enrich_category_with_computed_fields(
+                db, child, all_categories, include_children
+            )
+            for child in children
+        ]
+    else:
+        enriched_children = []
 
     return CategoryWithComputed(
         id=category.id,
@@ -192,7 +200,12 @@ def enrich_category_with_computed_fields(
 
 
 def enrich_categories_with_computed_fields(
-    db: Session, categories: List[Category]
+    db: Session, categories: List[Category], include_children: bool = True
 ) -> List[CategoryWithComputed]:
     """Обогатить список категорий вычисляемыми полями"""
-    return [enrich_category_with_computed_fields(db, cat) for cat in categories]
+    return [
+        enrich_category_with_computed_fields(
+            db, cat, None, include_children=include_children
+        )
+        for cat in categories
+    ]
