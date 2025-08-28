@@ -133,23 +133,8 @@ def delete_category(db: Session, category_id: int) -> bool:
         db.rollback()
         raise e
 
-
-def get_category_tree(db: Session) -> List[dict]:
-    try:
-        all_categories = db.query(Category).all()
-        category_dict = {cat.id: cat for cat in all_categories}
-        
-        # Создаем дерево как словари, а не модифицируем ORM объекты
-        tree = []
-        for category in all_categories:
-            if category.parent_id is None:
-                tree.append(_build_category_tree_node(category, category_dict))
-        
-        return tree
-    
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise e
+def get_category_tree(db: Session) -> List[Category]:
+    return db.query(Category).filter(Category.parent_id.is_(None)).all()
 
 def _build_category_tree_node(category, category_dict):
     """Рекурсивно строит узел дерева"""

@@ -11,36 +11,19 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 
 
 @router.get("/", response_model=List[CategoryWithComputed])
-def get_categories(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_db),
-):
-    """Получить список всех категорий"""
-    try:
-        # Получаем все категории одним запросом для оптимизации
-        all_categories = db.query(Category).all()
-        categories = all_categories[skip:skip + limit]
-        
-        # Используем оптимизированную версию с предзагруженными данными
-        return crud_category.enrich_categories_with_computed_fields(db, categories, all_categories)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Внутренняя ошибка сервера при получении категорий",
-        )
+def get_categories(skip: int = Query(0, ge=0),
+                   limit: int = Query(100, ge=1, le=1000),
+                   db: Session = Depends(get_db)):
+    all_categories = db.query(Category).all()
+    categories = all_categories[skip:skip+limit]
+
+    return crud_category.enrich_categories_with_computed_fields(db, categories)
 
 @router.get("/tree", response_model=List[CategoryWithComputed])
 def get_category_tree(db: Session = Depends(get_db)):
-    """Получить полное дерево категорий"""
-    try:
-        categories = crud_category.get_category_tree(db)
-        return crud_category.enrich_categories_with_computed_fields(db, categories)
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Внутренняя ошибка сервера при получении дерева категорий",
-        )
+
+    roots = db.query(Category).filter(Category.parent_id.is_(None)).all()
+    return crud_category.enrich_categories_with_computed_fields(db, roots)
 
 
 @router.get("/root", response_model=List[CategoryWithComputed])
@@ -96,29 +79,11 @@ def get_category_by_sysname(sysname: str, db: Session = Depends(get_db)):
 
 @router.get("/{category_id}/children", response_model=List[CategoryWithComputed])
 def get_category_children(category_id: int, db: Session = Depends(get_db)):
-    """Получить дочерние категории"""
-    try:
-        # Проверяем, что родительская категория существует
-        parent = crud_category.get_category(db, category_id)
-        if not parent:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Родительская категория не найдена",
-            )
-
-        children = crud_category.get_category_children(db, category_id)
-        
-        # Предзагружаем все категории для оптимизации
-        all_categories = db.query(Category).all()
-        return crud_category.enrich_categories_with_computed_fields(db, children, all_categories)
-    except HTTPException:
-        raise
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Внутренняя ошибка сервера при получении дочерних категорий",
-        )
-
+    parent = crud_category.get_category(db, category_id)
+    if not parent:
+        raise HTTPException(status_code=404, detail="Родительская категория не найдена")
+    children = crud_category.get_category_children(db, category_id)
+    return crud_category.enrich_categories_with_computed_fields(db, children)
 
 @router.post("/", response_model=CategoryWithComputed, dependencies=[Depends(require_admin_role)])
 def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
