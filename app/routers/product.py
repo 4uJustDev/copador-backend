@@ -153,24 +153,6 @@ def delete_product(
     return {"message": "Product deleted successfully"}
 
 
-@router.put(
-    "/{product_id}/stock",
-    dependencies=[Depends(require_admin_role)],
-)
-def update_product_stock(
-    product_id: int,
-    amount: int = Query(..., ge=0),
-    db: Session = Depends(get_db),
-):
-    """Обновить количество товара на складе (только для админов)"""
-    updated_product = crud_product.update_product_stock(db, product_id, amount)
-    if not updated_product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
-        )
-    return {"message": "Stock updated successfully", "new_amount": amount}
-
-
 # ===== ФОТОГРАФИИ ТОВАРОВ =====
 
 

@@ -29,7 +29,7 @@ class ProductUpdate(BaseModel):
 class ProductOut(ProductBase):
     id: int
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime]
 
     class Config:
         from_attributes = True

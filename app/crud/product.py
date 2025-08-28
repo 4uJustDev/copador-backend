@@ -122,21 +122,3 @@ def delete_product(db: Session, product_id: int) -> bool:
     except SQLAlchemyError as e:
         db.rollback()
         raise e
-
-
-def update_product_stock(
-    db: Session, product_id: int, amount: int
-) -> Optional[Product]:
-    """Обновить количество товара на складе"""
-    try:
-        db_product = get_product(db, product_id)
-        if not db_product:
-            return None
-
-        db_product.amount = amount
-        db.commit()
-        db.refresh(db_product)
-        return db_product
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise e

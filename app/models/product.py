@@ -17,8 +17,8 @@ class Product(Base):
     __tablename__ = "products"
 
     id = Column(BigInteger, primary_key=True, index=True)
-    sku = Column(String, nullable=False, unique=True, index=True)  # Stock Keeping Unit
-    price = Column(Numeric(10, 2), nullable=False)  # Цена с двумя знаками после запятой
+    sku = Column(String, nullable=False, unique=True, index=True)
+    price = Column(Numeric(10, 2), nullable=False)
     name = Column(String, nullable=False, index=True)
     description = Column(Text, nullable=True)
     category_id = Column(
