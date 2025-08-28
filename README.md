@@ -3,7 +3,7 @@
 1. **Клонируйте репозиторий:**
 ```bash
 git clone <repository-url>
-cd tt-oak-company-backend
+cd copador-backend
 ```
 
 2. **Создайте виртуальное окружение и запустите:**

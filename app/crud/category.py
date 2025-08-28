@@ -97,9 +97,13 @@ def update_category(
                 current_parent_id = new_parent_id
                 while current_parent_id is not None:
                     if current_parent_id == category_id:
-                        raise ValueError("Обнаружена циклическая ссылка в иерархии категорий")
+                        raise ValueError(
+                            "Обнаружена циклическая ссылка в иерархии категорий"
+                        )
                     parent_category = get_category(db, current_parent_id)
-                    current_parent_id = parent_category.parent_id if parent_category else None
+                    current_parent_id = (
+                        parent_category.parent_id if parent_category else None
+                    )
 
         # Обновляем поля
         for field, value in update_data.items():
@@ -133,8 +137,10 @@ def delete_category(db: Session, category_id: int) -> bool:
         db.rollback()
         raise e
 
+
 def get_category_tree(db: Session) -> List[Category]:
     return db.query(Category).filter(Category.parent_id.is_(None)).all()
+
 
 def _build_category_tree_node(category, category_dict):
     """Рекурсивно строит узел дерева"""
@@ -145,15 +151,16 @@ def _build_category_tree_node(category, category_dict):
         "parent_id": category.parent_id,
         "created_at": category.created_at,
         "updated_at": category.updated_at,
-        "children": []
+        "children": [],
     }
-    
+
     # Находим детей и рекурсивно строим для них дерево
     children = [cat for cat in category_dict.values() if cat.parent_id == category.id]
     for child in children:
         node["children"].append(_build_category_tree_node(child, category_dict))
-    
+
     return node
+
 
 def enrich_category_with_computed_fields(
     db: Session, category: Category, all_categories: List[Category] = None
@@ -161,7 +168,7 @@ def enrich_category_with_computed_fields(
     """Обогатить категорию вычисляемыми полями"""
     if all_categories is None:
         all_categories = db.query(Category).all()
-    
+
     # Находим детей из предзагруженного списка
     children = [cat for cat in all_categories if cat.parent_id == category.id]
     is_leaf = len(children) == 0
@@ -180,8 +187,9 @@ def enrich_category_with_computed_fields(
         created_at=category.created_at,
         updated_at=category.updated_at,
         is_leaf=is_leaf,
-        children=enriched_children
+        children=enriched_children,
     )
+
 
 def enrich_categories_with_computed_fields(
     db: Session, categories: List[Category]

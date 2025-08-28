@@ -11,13 +11,16 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 
 
 @router.get("/", response_model=List[CategoryWithComputed])
-def get_categories(skip: int = Query(0, ge=0),
-                   limit: int = Query(100, ge=1, le=1000),
-                   db: Session = Depends(get_db)):
+def get_categories(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
     all_categories = db.query(Category).all()
-    categories = all_categories[skip:skip+limit]
+    categories = all_categories[skip : skip + limit]
 
     return crud_category.enrich_categories_with_computed_fields(db, categories)
+
 
 @router.get("/tree", response_model=List[CategoryWithComputed])
 def get_category_tree(db: Session = Depends(get_db)):
@@ -85,7 +88,10 @@ def get_category_children(category_id: int, db: Session = Depends(get_db)):
     children = crud_category.get_category_children(db, category_id)
     return crud_category.enrich_categories_with_computed_fields(db, children)
 
-@router.post("/", response_model=CategoryWithComputed, dependencies=[Depends(require_admin_role)])
+
+@router.post(
+    "/", response_model=CategoryWithComputed, dependencies=[Depends(require_admin_role)]
+)
 def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     """Создать новую категорию (только для админов)"""
     try:
@@ -94,12 +100,14 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Категория с таким sysname уже существует"
+                detail="Категория с таким sysname уже существует",
             )
-            
+
         created_category = crud_category.create_category(db, category)
         all_categories = db.query(Category).all()
-        return crud_category.enrich_category_with_computed_fields(db, created_category, all_categories)
+        return crud_category.enrich_category_with_computed_fields(
+            db, created_category, all_categories
+        )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
@@ -109,8 +117,14 @@ def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
         )
 
 
-@router.put("/{category_id}", response_model=CategoryWithComputed, dependencies=[Depends(require_admin_role)])
-def update_category(category_id: int, category: CategoryUpdate, db: Session = Depends(get_db)):
+@router.put(
+    "/{category_id}",
+    response_model=CategoryWithComputed,
+    dependencies=[Depends(require_admin_role)],
+)
+def update_category(
+    category_id: int, category: CategoryUpdate, db: Session = Depends(get_db)
+):
     """Обновить категорию (только для админов)"""
     try:
         # Сначала проверяем существование
@@ -119,16 +133,18 @@ def update_category(category_id: int, category: CategoryUpdate, db: Session = De
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Категория не найдена"
             )
-            
+
         updated_category = crud_category.update_category(db, category_id, category)
         if not updated_category:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Категория не найдена"
             )
-            
+
         # Предзагружаем для оптимизации
         all_categories = db.query(Category).all()
-        return crud_category.enrich_category_with_computed_fields(db, updated_category, all_categories)
+        return crud_category.enrich_category_with_computed_fields(
+            db, updated_category, all_categories
+        )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except HTTPException:
