@@ -35,8 +35,11 @@ class ProductOut(ProductBase):
         from_attributes = True
 
 
+from app.schemas.product_photo import ProductPhotoOut
+
+
 class ProductWithPhotos(ProductOut):
-    photos: List[dict] = []
+    photos: List[ProductPhotoOut] = []
 
     class Config:
         from_attributes = True
