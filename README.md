@@ -48,6 +48,11 @@ ADMIN_PASSWORD=
 docker compose up -d --build
 ```
 
+6. **Инициализируйте базовые данные:**
+```bash
+docker compose exec api bash -lc "python -m app.scripts.seeds"
+```
+
 ## Полезные команды
 
 ## Alembic
