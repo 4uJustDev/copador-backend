@@ -59,7 +59,7 @@ def update_role(
 ):
     """Обновить роль (только для администраторов)"""
     # Если обновляется имя, проверяем дубликаты
-    update_data = role.dict(exclude_unset=True)
+    update_data = role.model_dump(exclude_unset=True)
     if "name" in update_data:
         existing = crud_role.get_role_by_name(db, update_data["name"])
         if existing and existing.id != role_id:

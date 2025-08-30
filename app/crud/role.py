@@ -36,7 +36,7 @@ def get_role_by_name(db: Session, name: str) -> Optional[Role]:
 def create_role(db: Session, role: RoleCreate) -> Role:
     """Создать новую роль"""
     try:
-        db_role = Role(**role.dict())
+        db_role = Role(**role.model_dump())
         db.add(db_role)
         db.commit()
         db.refresh(db_role)
@@ -56,7 +56,7 @@ def update_role(db: Session, role_id: int, role: RoleUpdate) -> Optional[Role]:
         if not db_role:
             return None
 
-        update_data = role.dict(exclude_unset=True)
+        update_data = role.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_role, field, value)
 

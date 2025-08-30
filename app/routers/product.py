@@ -9,7 +9,7 @@ from fastapi import (
     Form,
 )
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.database import get_db
 from app.core.auth import require_admin_role
 from app.crud import product as crud_product
@@ -18,7 +18,7 @@ from app.schemas.product import (
     ProductCreate,
     ProductUpdate,
     ProductOut,
-    ProductWithPhotos,
+    ProductWithExtendedInfo,
 )
 from app.schemas.product_photo import (
     ProductPhotoUpdate,
@@ -35,15 +35,29 @@ from app.services.images import (
 router = APIRouter(prefix="/products", tags=["Products"])
 
 
-@router.get("/", response_model=List[ProductOut])
-def get_products(
+@router.get("/", response_model=List[ProductWithExtendedInfo])
+def read_products(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
+    category_sysname: Optional[str] = Query(
+        None, description="Фильтр по типу товара (sysname категории)"
+    ),
     db: Session = Depends(get_db),
 ):
-    """Получить список всех товаров"""
-    products = crud_product.get_products(db, skip=skip, limit=limit)
-    return products
+    """Получить список всех товаров или с дополнительной информацией"""
+    try:
+        if category_sysname:
+            products = crud_product.get_products_by_category_sysname_with_extended_info(
+                db, category_sysname, skip=skip, limit=limit
+            )
+        else:
+            products = crud_product.get_products(db, skip=skip, limit=limit)
+        return products
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при получении товаров: {str(e)}",
+        )
 
 
 @router.get("/search", response_model=List[ProductOut])
@@ -54,44 +68,34 @@ def search_products(
     db: Session = Depends(get_db),
 ):
     """Поиск товаров по названию или описанию"""
-    products = crud_product.search_products(db, q, skip=skip, limit=limit)
-    return products
-
-
-@router.get("/category/{category_id}", response_model=List[ProductOut])
-def get_products_by_category(
-    category_id: int,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000),
-    db: Session = Depends(get_db),
-):
-    """Получить товары по категории"""
-    products = crud_product.get_products_by_category(
-        db, category_id, skip=skip, limit=limit
-    )
-    return products
+    try:
+        products = crud_product.search_products(db, q, skip=skip, limit=limit)
+        return products
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при поиске товаров: {str(e)}",
+        )
 
 
 @router.get("/{product_id}", response_model=ProductOut)
 def get_product(product_id: int, db: Session = Depends(get_db)):
     """Получить товар по ID"""
-    product = crud_product.get_product(db, product_id)
-    if not product:
+    try:
+        product = crud_product.get_product(db, product_id)
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Товар с ID {product_id} не найден",
+            )
+        return product
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при получении товара: {str(e)}",
         )
-    return product
-
-
-@router.get("/{product_id}/with-photos", response_model=ProductWithPhotos)
-def get_product_with_photos(product_id: int, db: Session = Depends(get_db)):
-    """Получить товар с фотографиями"""
-    product = crud_product.get_product(db, product_id)
-    if not product:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
-        )
-    return product
 
 
 @router.get("/sku/{sku}", response_model=ProductOut)
@@ -117,8 +121,13 @@ def create_product(
     """Создать новый товар (только для админов)"""
     try:
         return crud_product.create_product(db, product)
-    except Exception as e:
+    except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Внутренняя ошибка сервера: {str(e)}",
+        )
 
 
 @router.put(
@@ -132,12 +141,23 @@ def update_product(
     db: Session = Depends(get_db),
 ):
     """Обновить товар (только для админов)"""
-    updated_product = crud_product.update_product(db, product_id, product)
-    if not updated_product:
+    try:
+        updated_product = crud_product.update_product(db, product_id, product)
+        if not updated_product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Товар с ID {product_id} не найден",
+            )
+        return updated_product
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при обновлении товара: {str(e)}",
         )
-    return updated_product
 
 
 @router.delete(
@@ -149,12 +169,21 @@ def delete_product(
     db: Session = Depends(get_db),
 ):
     """Удалить товар (только для админов)"""
-    success = crud_product.delete_product(db, product_id)
-    if not success:
+    try:
+        success = crud_product.delete_product(db, product_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Товар с ID {product_id} не найден",
+            )
+        return {"message": "Товар успешно удален"}
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при удалении товара: {str(e)}",
         )
-    return {"message": "Product deleted successfully"}
 
 
 # ===== ФОТОГРАФИИ ТОВАРОВ =====

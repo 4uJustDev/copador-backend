@@ -69,7 +69,7 @@ def search_carpets_by_origin(
 def create_carpet(db: Session, carpet: CarpetCreate) -> Carpet:
     """Создать новый ковер"""
     try:
-        db_carpet = Carpet(**carpet.dict())
+        db_carpet = Carpet(**carpet.model_dump())
         db.add(db_carpet)
         db.commit()
         db.refresh(db_carpet)
@@ -91,7 +91,7 @@ def update_carpet(
         if not db_carpet:
             return None
 
-        update_data = carpet.dict(exclude_unset=True)
+        update_data = carpet.model_dump(exclude_unset=True)
         for field, value in update_data.items():
             setattr(db_carpet, field, value)
 

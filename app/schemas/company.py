@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from app.schemas.photo import PhotoOut
 from datetime import date
@@ -39,5 +39,4 @@ class CompanyOut(CompanyBase):
     id: int
     photos: Optional[List[PhotoOut]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -6,7 +6,7 @@ from datetime import datetime
 
 class CategoryBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    sysname: str = Field(..., min_length=1, max_length=100, pattern=r"^[a-z0-9-]+$")
+    product_type_id: Optional[int] = None
 
 
 class CategoryCreate(CategoryBase):
@@ -15,15 +15,14 @@ class CategoryCreate(CategoryBase):
 
 class CategoryUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
-    sysname: Optional[str] = Field(
-        None, min_length=1, max_length=100, pattern=r"^[a-z0-9-]+$"
-    )
+    product_type_id: Optional[int] = None
     parent_id: Optional[int] = None
 
 
 class CategoryOut(CategoryBase):
     id: int
     parent_id: Optional[int] = None
+    product_type_id: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
 

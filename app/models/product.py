@@ -34,3 +34,16 @@ class Product(Base):
         "ProductPhoto", back_populates="product", cascade="all, delete-orphan"
     )
     carpet = relationship("Carpet", back_populates="product", uselist=False)
+
+    # Вычисляемые свойства для информации о категории
+    @property
+    def category_name(self):
+        return self.category.name if self.category else None
+
+    @property
+    def category_product_type_sysname(self):
+        return (
+            self.category.product_type.sysname
+            if self.category and self.category.product_type
+            else None
+        )

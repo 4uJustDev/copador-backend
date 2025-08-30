@@ -4,3 +4,4 @@ from .product import Product
 from .product_photo import ProductPhoto
 from .carpet import Carpet
 from .role import Role
+from .product_type import ProductType

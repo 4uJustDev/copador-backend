@@ -4,3 +4,4 @@ from . import product
 from . import product_photo
 from . import carpet
 from . import role
+from . import product_type

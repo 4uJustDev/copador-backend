@@ -12,7 +12,9 @@ class Category(Base):
     parent_id = Column(
         BigInteger, ForeignKey("categories.id", ondelete="CASCADE"), nullable=True
     )
-    sysname = Column(String, nullable=False, unique=True, index=True)
+    product_type_id = Column(
+        BigInteger, ForeignKey("product_types.id", ondelete="SET NULL"), nullable=True
+    )
 
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -29,3 +31,4 @@ class Category(Base):
         "Category", back_populates="parent", cascade="all, delete-orphan"
     )
     products = relationship("Product", back_populates="category")
+    product_type = relationship("ProductType", back_populates="categories")

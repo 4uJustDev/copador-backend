@@ -32,15 +32,6 @@ def get_root_categories(db: Session) -> List[Category]:
         raise e
 
 
-def get_category_by_sysname(db: Session, sysname: str) -> Optional[Category]:
-    """Получить категорию по sysname"""
-    try:
-        return db.query(Category).filter(Category.sysname == sysname).first()
-    except SQLAlchemyError as e:
-        db.rollback()
-        raise e
-
-
 def get_category_children(db: Session, category_id: int) -> List[Category]:
     """Получить дочерние категории"""
     try:
@@ -53,16 +44,14 @@ def get_category_children(db: Session, category_id: int) -> List[Category]:
 def create_category(db: Session, category: CategoryCreate) -> Category:
     """Создать новую категорию"""
     try:
-        # Проверяем, что parent_id существует, если указан
         if category.parent_id is not None:
             parent = get_category(db, category.parent_id)
             if not parent:
                 raise ValueError("Родительская категория не найдена")
 
-        # Создаем категорию (без is_leaf - он вычисляется динамически)
         db_category = Category(
             name=category.name,
-            sysname=category.sysname,
+            product_type_id=category.product_type_id,
             parent_id=category.parent_id,
         )
         db.add(db_category)
@@ -87,13 +76,11 @@ def update_category(
         if not db_category:
             return None
 
-        update_data = category.dict(exclude_unset=True)
+        update_data = category.model_dump(exclude_unset=True)
 
-        # Проверяем новый parent_id, если он указан
         if "parent_id" in update_data:
             new_parent_id = update_data["parent_id"]
             if new_parent_id is not None:
-                # Проверка на циклы в иерархии
                 current_parent_id = new_parent_id
                 while current_parent_id is not None:
                     if current_parent_id == category_id:
@@ -105,7 +92,6 @@ def update_category(
                         parent_category.parent_id if parent_category else None
                     )
 
-        # Обновляем поля
         for field, value in update_data.items():
             setattr(db_category, field, value)
 
@@ -128,7 +114,6 @@ def delete_category(db: Session, category_id: int) -> bool:
         if not db_category:
             return False
 
-        # Удаляем категорию (каскадное удаление дочерних элементов настроено в модели)
         db.delete(db_category)
         db.commit()
 
@@ -147,7 +132,7 @@ def _build_category_tree_node(category, category_dict):
     node = {
         "id": category.id,
         "name": category.name,
-        "sysname": category.sysname,
+        "product_type_id": category.product_type_id,
         "parent_id": category.parent_id,
         "created_at": category.created_at,
         "updated_at": category.updated_at,
@@ -172,11 +157,9 @@ def enrich_category_with_computed_fields(
     if all_categories is None:
         all_categories = db.query(Category).all()
 
-    # Находим детей из предзагруженного списка
     children = [cat for cat in all_categories if cat.parent_id == category.id]
     is_leaf = len(children) == 0
 
-    # Рекурсивно обогащаем детей, если это требуется
     if include_children:
         enriched_children = [
             enrich_category_with_computed_fields(
@@ -190,7 +173,7 @@ def enrich_category_with_computed_fields(
     return CategoryWithComputed(
         id=category.id,
         name=category.name,
-        sysname=category.sysname,
+        product_type_id=category.product_type_id,
         parent_id=category.parent_id,
         created_at=category.created_at,
         updated_at=category.updated_at,
