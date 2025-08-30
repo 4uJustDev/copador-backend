@@ -2,16 +2,23 @@
 
 1. **Клонируйте репозиторий:**
 ```bash
-git clone <repository-url>
-cd copador-backend
+git clone https://github.com/4uJustDev/copador-backend.git
 ```
 
 2. **Создайте виртуальное окружение и запустите:**
+Инициализируйте виртуальное окружение
 ```bash
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# или
-venv\Scripts\activate  # Windows
+```
+
+Запуск Linux/Mac
+```bash
+source venv/bin/activate  
+```
+
+Запуск Windows
+```bash  
+venv\Scripts\activate  
 ```
 
 3. **Установите зависимости:**
@@ -20,7 +27,9 @@ pip install -r requirements.txt
 ```
 
 4. **Настройте переменные окружения:**
+Создайте .env файл и заполните переменные
 
+```bash
 # === Database ===
 DB_USER=
 DB_PASSWORD=
@@ -32,39 +41,35 @@ JWT_ALGORITHM=
 JWT_EXPIRE_MINUTES=
 # === For scripts ===
 ADMIN_PASSWORD=
+```
 
-
-5. **Создайте базу данных:**
-Название БД в .env DB_NAME задается.
-
-
-6. **Запустите приложение:**
+5. **Запустите приложение:**
 ```bash
 docker compose up -d --build
 ```
 
 ## Полезные команды
 
-# Alembic
-alembic revision --autogenerate -m "comment" 
-alembic upgrade head
-docker compose exec api alembic history                              | История миграций
-docker compose exec api alembic revision --autogenerate -m "comment" | Создание миграции в контейнере и фиксирование его на локалке
+## Alembic
+- alembic revision --autogenerate -m "comment" 
+- alembic upgrade head
+- docker compose exec api alembic history                              | История миграций
+- docker compose exec api alembic revision --autogenerate -m "comment" | Создание миграции в контейнере и фиксирование - его на локалке
 
-# Docker 
-docker compose down               | Остановка всех контейнеров
-docker compose up -d --build      | Сборка контейнеров
-docker compose build --no-cache   | Пересборка жесткая 
-docker compose exec api bash      | Подключение к контейнеру с башем
+## Docker 
+- docker compose down               | Остановка всех контейнеров
+- docker compose up -d --build      | Сборка контейнеров
+- docker compose build --no-cache   | Пересборка жесткая 
+- docker compose exec api bash      | Подключение к контейнеру с башем
 
-# Scripts
-docker compose exec api bash -lc "python -m app.scripts.seeds" | cat                           
+## Scripts
+- docker compose exec api bash -lc "python -m app.scripts.seeds" | cat                           
 
-# Logs
+## Logs
 
-docker compose logs api                  | Логи Докера
-sudo tail -f /var/log/nginx/access.log   | Логи Nginx
-sudo tail -f /var/log/nginx/error.log    | Логи Nginx
+- docker compose logs api                  | Логи Докера
+- sudo tail -f /var/log/nginx/access.log   | Логи Nginx
+- sudo tail -f /var/log/nginx/error.log    | Логи Nginx
 
 
 ..
