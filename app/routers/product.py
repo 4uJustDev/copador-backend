@@ -110,7 +110,7 @@ def get_product_by_sku(sku: str, db: Session = Depends(get_db)):
 
 
 @router.post(
-    "/",
+    "",
     response_model=ProductOut,
     dependencies=[Depends(require_admin_role)],
 )
