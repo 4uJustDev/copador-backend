@@ -13,7 +13,9 @@ from app.core.exceptions import (
 )
 
 
-app = FastAPI(root_path="/api/project2", title="Product Catalog API")
+app = FastAPI(
+    root_path="/api/project2", title="Product Catalog API", redirect_slashes=False
+)
 
 app.include_router(auth.router)
 app.include_router(category.router)

@@ -8,11 +8,17 @@ from app.schemas.product_type import (
     ProductTypeUpdate,
     ProductTypeOut,
 )
+from app.core.auth import require_admin_role
 
 router = APIRouter(prefix="/product-types", tags=["product-types"])
 
 
-@router.post("/", response_model=ProductTypeOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=ProductTypeOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_admin_role)],
+)
 def create_product_type(product_type: ProductTypeCreate, db: Session = Depends(get_db)):
     """Создать новый тип товара"""
     try:
@@ -86,7 +92,11 @@ def read_product_type_by_sysname(sysname: str, db: Session = Depends(get_db)):
         )
 
 
-@router.put("/{product_type_id}", response_model=ProductTypeOut)
+@router.put(
+    "/{product_type_id}",
+    response_model=ProductTypeOut,
+    dependencies=[Depends(require_admin_role)],
+)
 def update_product_type(
     product_type_id: int,
     product_type: ProductTypeUpdate,
@@ -117,7 +127,11 @@ def update_product_type(
         )
 
 
-@router.delete("/{product_type_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{product_type_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_admin_role)],
+)
 def delete_product_type(product_type_id: int, db: Session = Depends(get_db)):
     """Удалить тип товара"""
     try:
