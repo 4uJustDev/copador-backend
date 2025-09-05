@@ -85,36 +85,41 @@ def get_products_by_product_type_sysname_with_extended_info(
 def get_products_by_category_id_with_extended_info(
     db: Session, category_id: int, skip: int = 0, limit: int = 100
 ) -> List[Product]:
-    """Получить товары по ID категории с дополнительной информацией и фотографиями"""
+    """Получить товары по ID категории (включая дочерние) с расширенной информацией и фото"""
     try:
         from app.models.category import Category
-        from app.models.product_type import ProductType
         from app.models.carpet import Carpet
         from app.services.product_extensions import ProductExtensionService
 
-        # Определяем sysname типа товара для выбранной категории
-        category = db.query(Category).filter(Category.id == category_id).first()
-        if not category:
-            return []
+        # Собираем все ID дочерних категорий (включая родительскую)
+        category_ids: List[int] = []
+        queue: List[int] = [category_id]
+        while queue:
+            category_ids.extend(queue)
+            children = db.query(Category.id).filter(Category.parent_id.in_(queue)).all()
+            queue = [child_id for (child_id,) in children]
 
-        product_type_sysname = (
-            db.query(ProductType.sysname)
-            .filter(ProductType.id == category.product_type_id)
-            .scalar()
-        )
+        if not category_ids:
+            return []
 
         query = (
             db.query(Product)
-            .options(joinedload(Product.photos))
-            .filter(Product.category_id == category_id)
+            .options(
+                joinedload(Product.photos),
+                joinedload(Product.category).joinedload(Category.product_type),
+            )
+            .filter(Product.category_id.in_(category_ids))
+            .outerjoin(Carpet, Product.id == Carpet.product_id)
         )
-
-        if product_type_sysname == "carpet":
-            query = query.outerjoin(Carpet, Product.id == Carpet.product_id)
 
         products = query.offset(skip).limit(limit).all()
 
         for product in products:
+            product_type_sysname = (
+                product.category.product_type.sysname
+                if product.category and product.category.product_type
+                else None
+            )
             product.extended_info = ProductExtensionService.get_extended_info(
                 product, product_type_sysname
             )
