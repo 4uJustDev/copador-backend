@@ -5,28 +5,7 @@
 git clone https://github.com/4uJustDev/copador-backend.git
 ```
 
-2. **Создайте виртуальное окружение и запустите:**
-Инициализируйте виртуальное окружение
-```bash
-python -m venv venv
-```
-
-Запуск Linux/Mac
-```bash
-source venv/bin/activate  
-```
-
-Запуск Windows
-```bash  
-venv\Scripts\activate  
-```
-
-3. **Установите зависимости:**
-```bash
-pip install -r requirements.txt
-```
-
-4. **Настройте переменные окружения:**
+2. **Настройте переменные окружения:**
 Создайте .env файл и заполните переменные
 
 ```bash
@@ -41,17 +20,31 @@ JWT_ALGORITHM=
 JWT_EXPIRE_MINUTES=
 # === For scripts ===
 ADMIN_PASSWORD=
+ADMIN_EMAIL=
 ```
 
-5. **Запустите приложение:**
+3. **Запустите приложение:**
 ```bash
 docker compose up -d --build
 ```
 
-6. **Инициализируйте базовые данные:**
+4. **Инициализируйте базовые данные(Роли + Админский акк):**
+Данные для админа из .env ADMIN_EMAIL(по умолчанию admin@example.com) и ADMIN_PASSWORD(обязательно указать)
+Роли: admin, customer(По умолчанию дается при регистрации).
 ```bash
 docker compose exec api bash -lc "python -m app.scripts.seeds"
 ```
+
+## Стэк
+- **FastAPI** - современный веб-фреймворк для Python
+- **SQLAlchemy 2.0** - ORM для работы с базой данных
+- **PostgreSQL** - реляционная база данных
+- **Alembic** - миграции базы данных
+- **JWT** - аутентификация
+- **Pydantic** - валидация данных
+- **bcrypt** - хеширование паролей
+
+
 
 ## Полезные команды
 
@@ -77,12 +70,24 @@ docker compose exec api bash -lc "python -m app.scripts.seeds"
 - sudo tail -f /var/log/nginx/error.log    | Логи Nginx
 
 
-..
-## Стэк
-- **FastAPI** - современный веб-фреймворк для Python
-- **SQLAlchemy 2.0** - ORM для работы с базой данных
-- **PostgreSQL** - реляционная база данных
-- **Alembic** - миграции базы данных
-- **JWT** - аутентификация
-- **Pydantic** - валидация данных
-- **bcrypt** - хеширование паролей
+## Старые пункты
+2. **Создайте виртуальное окружение и запустите:**
+Инициализируйте виртуальное окружение
+```bash
+python -m venv venv
+```
+
+Запуск Linux/Mac
+```bash
+source venv/bin/activate  
+```
+
+Запуск Windows
+```bash  
+venv\Scripts\activate  
+```
+
+3. **Установите зависимости:**
+```bash
+pip install -r requirements.txt
+```
