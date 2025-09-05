@@ -36,19 +36,21 @@ router = APIRouter(prefix="/products", tags=["Products"])
 
 
 @router.get("", response_model=List[ProductWithExtendedInfo])
-def read_products(
+def read_products_list(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
-    category_sysname: Optional[str] = Query(
-        None, description="Фильтр по типу товара (sysname категории)"
+    product_type_sysname: Optional[str] = Query(
+        None, description="Фильтр по типу товара (sysname типа товара)"
     ),
     db: Session = Depends(get_db),
 ):
     """Получить список всех товаров или с дополнительной информацией"""
     try:
-        if category_sysname:
-            products = crud_product.get_products_by_category_sysname_with_extended_info(
-                db, category_sysname, skip=skip, limit=limit
+        if product_type_sysname:
+            products = (
+                crud_product.get_products_by_product_type_sysname_with_extended_info(
+                    db, product_type_sysname, skip=skip, limit=limit
+                )
             )
         else:
             products = crud_product.get_products(db, skip=skip, limit=limit)
@@ -57,6 +59,26 @@ def read_products(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Ошибка при получении товаров: {str(e)}",
+        )
+
+
+@router.get("/category/{category_id}", response_model=List[ProductWithExtendedInfo])
+def get_products_by_category_id(
+    category_id: int,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+):
+    """Получить товары по ID категории"""
+    try:
+        products = crud_product.get_products_by_category_id_with_extended_info(
+            db, category_id, skip=skip, limit=limit
+        )
+        return products
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при получении товаров категории: {str(e)}",
         )
 
 
