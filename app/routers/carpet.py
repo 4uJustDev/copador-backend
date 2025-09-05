@@ -9,7 +9,7 @@ from app.schemas.carpet import CarpetCreate, CarpetUpdate, CarpetOut, CarpetWith
 router = APIRouter(prefix="/carpets", tags=["Carpets"])
 
 
-@router.get("/", response_model=List[CarpetOut])
+@router.get("", response_model=List[CarpetOut])
 def get_carpets(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -85,7 +85,7 @@ def get_carpet_by_product_id(product_id: int, db: Session = Depends(get_db)):
     return carpet
 
 
-@router.post("/", response_model=CarpetOut, dependencies=[Depends(require_admin_role)])
+@router.post("", response_model=CarpetOut, dependencies=[Depends(require_admin_role)])
 def create_carpet(
     carpet: CarpetCreate,
     db: Session = Depends(get_db),

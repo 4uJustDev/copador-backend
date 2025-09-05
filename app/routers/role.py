@@ -11,7 +11,7 @@ from typing import List
 router = APIRouter(prefix="/roles", tags=["roles"])
 
 
-@router.post("/", response_model=RoleOut, dependencies=[Depends(require_admin_role)])
+@router.post("", response_model=RoleOut, dependencies=[Depends(require_admin_role)])
 def create_role(
     role: RoleCreate,
     db: Session = Depends(get_db),
@@ -34,7 +34,7 @@ def create_role(
         )
 
 
-@router.get("/", response_model=List[RoleOut])
+@router.get("", response_model=List[RoleOut])
 def read_roles(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """Получить список ролей (публичный доступ)"""
     return crud_role.get_roles(db, skip=skip, limit=limit)

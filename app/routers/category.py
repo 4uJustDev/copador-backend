@@ -10,7 +10,7 @@ from app.models.category import Category
 router = APIRouter(prefix="/categories", tags=["Categories"])
 
 
-@router.get("/", response_model=List[CategoryWithComputed])
+@router.get("", response_model=List[CategoryWithComputed])
 def get_categories(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
@@ -75,7 +75,7 @@ def get_category_children(category_id: int, db: Session = Depends(get_db)):
 
 
 @router.post(
-    "/", response_model=CategoryWithComputed, dependencies=[Depends(require_admin_role)]
+    "", response_model=CategoryWithComputed, dependencies=[Depends(require_admin_role)]
 )
 def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
     """Создать новую категорию (только для админов)"""

@@ -14,7 +14,7 @@ router = APIRouter(prefix="/product-types", tags=["product-types"])
 
 
 @router.post(
-    "/",
+    "",
     response_model=ProductTypeOut,
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(require_admin_role)],
@@ -35,7 +35,7 @@ def create_product_type(product_type: ProductTypeCreate, db: Session = Depends(g
         )
 
 
-@router.get("/", response_model=List[ProductTypeOut])
+@router.get("", response_model=List[ProductTypeOut])
 def read_product_types(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """Получить список типов товаров"""
     try:
