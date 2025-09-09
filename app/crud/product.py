@@ -48,6 +48,94 @@ def get_product_by_sku(db: Session, sku: str) -> Optional[Product]:
         raise e
 
 
+def get_product_with_extended_info(db: Session, product_id: int) -> Optional[Product]:
+    """Получить товар по ID с дополнительной информацией и фотографиями"""
+    try:
+        from app.models.category import Category
+        from app.models.carpet import Carpet
+        from app.services.product_extensions import ProductExtensionService
+
+        query = (
+            db.query(Product)
+            .options(
+                joinedload(Product.photos),
+                joinedload(Product.category).joinedload(Category.product_type),
+            )
+            .filter(Product.id == product_id)
+        )
+
+        # Определяем тип товара для правильного join
+        product = query.first()
+        if not product:
+            return None
+
+        # Получаем sysname типа товара
+        product_type_sysname = (
+            product.category.product_type.sysname
+            if product.category and product.category.product_type
+            else None
+        )
+
+        # Если это ковер, делаем join с таблицей Carpet
+        if product_type_sysname == "carpet":
+            query = query.outerjoin(Carpet, Product.id == Carpet.product_id)
+            product = query.first()
+
+        # Добавляем extended_info
+        product.extended_info = ProductExtensionService.get_extended_info(
+            product, product_type_sysname
+        )
+
+        return product
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
+
+
+def get_product_by_sku_with_extended_info(db: Session, sku: str) -> Optional[Product]:
+    """Получить товар по SKU с дополнительной информацией и фотографиями"""
+    try:
+        from app.models.category import Category
+        from app.models.carpet import Carpet
+        from app.services.product_extensions import ProductExtensionService
+
+        query = (
+            db.query(Product)
+            .options(
+                joinedload(Product.photos),
+                joinedload(Product.category).joinedload(Category.product_type),
+            )
+            .filter(Product.sku == sku)
+        )
+
+        # Определяем тип товара для правильного join
+        product = query.first()
+        if not product:
+            return None
+
+        # Получаем sysname типа товара
+        product_type_sysname = (
+            product.category.product_type.sysname
+            if product.category and product.category.product_type
+            else None
+        )
+
+        # Если это ковер, делаем join с таблицей Carpet
+        if product_type_sysname == "carpet":
+            query = query.outerjoin(Carpet, Product.id == Carpet.product_id)
+            product = query.first()
+
+        # Добавляем extended_info
+        product.extended_info = ProductExtensionService.get_extended_info(
+            product, product_type_sysname
+        )
+
+        return product
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
+
+
 def get_products_by_product_type_sysname_with_extended_info(
     db: Session, product_type_sysname: str, skip: int = 0, limit: int = 100
 ) -> List[Product]:

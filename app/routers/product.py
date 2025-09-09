@@ -100,11 +100,11 @@ def search_products(
         )
 
 
-@router.get("/{product_id}", response_model=ProductOut)
+@router.get("/{product_id}", response_model=ProductWithExtendedInfo)
 def get_product(product_id: int, db: Session = Depends(get_db)):
-    """Получить товар по ID"""
+    """Получить товар по ID с дополнительной информацией"""
     try:
-        product = crud_product.get_product(db, product_id)
+        product = crud_product.get_product_with_extended_info(db, product_id)
         if not product:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -120,15 +120,23 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
         )
 
 
-@router.get("/sku/{sku}", response_model=ProductOut)
+@router.get("/sku/{sku}", response_model=ProductWithExtendedInfo)
 def get_product_by_sku(sku: str, db: Session = Depends(get_db)):
-    """Получить товар по SKU"""
-    product = crud_product.get_product_by_sku(db, sku)
-    if not product:
+    """Получить товар по SKU с дополнительной информацией"""
+    try:
+        product = crud_product.get_product_by_sku_with_extended_info(db, sku)
+        if not product:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
+            )
+        return product
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Product not found"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Ошибка при получении товара: {str(e)}",
         )
-    return product
 
 
 @router.post(
